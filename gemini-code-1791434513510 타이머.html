@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>가을 열매 찾기 타이머</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Nanum Gothic', 'Malgun Gothic', sans-serif;
+    }
+
+    body {
+      background-color: #f3f8fe;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    /* 전체 메인 카드 UI */
+    .timer-card {
+      background-color: #ffffff;
+      width: 100%;
+      max-width: 380px;
+      border: 6px solid #fce8c8;
+      border-radius: 36px;
+      padding: 30px 24px 35px 24px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.06);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+    }
+
+    /* 오른쪽 상단 ⚙️ 설정 버튼 (웹앱 전체 화면 기준 고정 위치) */
+    .settings-btn {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: none;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 50%;
+      transition: transform 0.2s ease;
+      z-index: 1000;
+    }
+
+    .settings-btn:hover {
+      transform: rotate(45deg);
+    }
+
+    /* ① 상단 다람쥐 캐릭터 영역 */
+    .character-area {
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 90px;
+    }
+
+    .squirrel-svg, .custom-char-img {
+      width: 85px;
+      height: 85px;
+      object-fit: contain;
+      border-radius: 12px;
+    }
+
+    /* ② 제목 영역 */
+    .title {
+      color: #e5732f;
+      font-size: 24px;
+      font-weight: 800;
+      margin-bottom: 6px;
+      text-align: center;
+      letter-spacing: -0.5px;
+    }
+
+    /* ③ 설명 문구 */
+    .description {
+      color: #666666;
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 22px;
+      text-align: center;
+    }
+
+    /* ④ +1분 / +3분 / +5분 버튼 그룹 */
+    .time-buttons {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 24px;
+      width: 100%;
+      justify-content: center;
+    }
+
+    .btn-time {
+      background-color: #fbf2ad;
+      border: 2px solid #e2cb65;
+      color: #4a3e10;
+      font-size: 16px;
+      font-weight: 800;
+      padding: 10px 0;
+      width: 85px;
+      border-radius: 20px;
+      cursor: pointer;
+      box-shadow: 0 4px 0 #d3bc52;
+      transition: all 0.1s ease;
+      outline: none;
+    }
+
+    .btn-time:active {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 #d3bc52;
+    }
+
+    /* ⑤ 큰 타이머 영역 */
+    .timer-display-box {
+      background-color: #fdf8eb;
+      border: 3px dashed #eb9d4c;
+      border-radius: 24px;
+      width: 100%;
+      padding: 18px 12px;
+      display: flex;
+      justify-content: space-evenly;
+      align-items: center;
+      margin-bottom: 28px;
+      position: relative;
+    }
+
+    /* 왼쪽 칸: 기존 숫자 타이머 */
+    .timer-left-cell {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .timer-text {
+      font-size: 44px;
+      font-weight: 900;
+      color: #333d4b;
+      letter-spacing: 1px;
+    }
+
+    /* 오른쪽 칸: 모래시계 시각 효과 영역 */
+    .timer-right-cell {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-left: 2px dashed #fce8c8;
+      padding-left: 12px;
+    }
+
+    .hourglass-svg {
+      width: 52px;
+      height: 60px;
+    }
+
+    /* ⑥ 하단 시작! / 다시! 버튼 영역 */
+    .action-buttons {
+      display: flex;
+      gap: 16px;
+      width: 100%;
+      justify-content: center;
+    }
+
+    .btn-action {
+      flex: 1;
+      padding: 14px 0;
+      font-size: 20px;
+      font-weight: 800;
+      color: #ffffff;
+      border: none;
+      border-radius: 25px;
+      cursor: pointer;
+      outline: none;
+      transition: all 0.1s ease;
+      text-align: center;
+    }
+
+    /* 시작 버튼 */
+    .btn-start {
+      background-color: #72d572;
+      box-shadow: 0 5px 0 #52b352;
+    }
+
+    .btn-start:active {
+      transform: translateY(3px);
+      box-shadow: 0 2px 0 #52b352;
+    }
+
+    /* 다시 버튼 */
+    .btn-reset {
+      background-color: #6da2f7;
+      box-shadow: 0 5px 0 #4c80d4;
+    }
+
+    .btn-reset:active {
+      transform: translateY(3px);
+      box-shadow: 0 2px 0 #4c80d4;
+    }
+
+    /* 타이머 종료 애니메이션 */
+    @keyframes finishPulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.05); background-color: #ffe8b3; }
+      100% { transform: scale(1); }
+    }
+
+    .timer-finished {
+      animation: finishPulse 0.6s ease-in-out 3;
+    }
+
+    /* 떨어지는 모래 줄기 점선 애니메이션 */
+    @keyframes sandStreamFlow {
+      0% { stroke-dashoffset: 0; }
+      100% { stroke-dashoffset: -12; }
+    }
+
+    .sand-stream-active {
+      animation: sandStreamFlow 0.25s linear infinite;
+    }
+
+    /* 통합 설정 메뉴 모달 오버레이 & 패널 */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.35);
+      z-index: 1100;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .settings-modal {
+      background-color: #ffffff;
+      width: 100%;
+      max-width: 340px;
+      border: 4px solid #fce8c8;
+      border-radius: 28px;
+      padding: 22px 20px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      position: relative;
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px dashed #fce8c8;
+      padding-bottom: 10px;
+    }
+
+    .modal-title {
+      font-size: 16px;
+      font-weight: 800;
+      color: #e5732f;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .close-btn {
+      background: none;
+      border: none;
+      font-size: 18px;
+      font-weight: bold;
+      color: #aaa;
+      cursor: pointer;
+    }
+
+    .close-btn:hover {
+      color: #555;
+    }
+
+    .setting-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      background-color: #fffdf7;
+      border: 1px dashed #e2cb65;
+      border-radius: 16px;
+      padding: 12px;
+    }
+
+    .setting-label {
+      font-size: 13px;
+      font-weight: 800;
+      color: #4a3e10;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .setting-file-btn {
+      background-color: #ffffff;
+      border: 1px solid #d3bc52;
+      color: #4a3e10;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 8px 12px;
+      border-radius: 12px;
+      cursor: pointer;
+      text-align: center;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      width: 100%;
+    }
+
+    .bgm-volume-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 4px;
+      font-size: 11px;
+      color: #777;
+    }
+
+    .bgm-vol-slider {
+      width: 90px;
+      accent-color: #eb9d4c;
+      cursor: pointer;
+    }
+
+    .hidden-input {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 오른쪽 상단 ⚙️ 설정 버튼 -->
+  <button class="settings-btn" id="openSettingsBtn" title="설정">⚙️</button>
+
+  <div class="timer-card">
+    <!-- ① 캐릭터 영역 -->
+    <div class="character-area">
+      <div id="charImageContainer">
+        <!-- 기본 다람쥐 SVG -->
+        <svg class="squirrel-svg" viewBox="0 0 100 100">
+          <path d="M 65 75 C 95 75, 100 35, 75 25 C 60 20, 55 35, 62 48 C 65 55, 65 65, 55 68 Z" fill="#D97724"/>
+          <path d="M 68 70 C 90 70, 93 40, 75 32 C 65 28, 62 38, 67 48" fill="#F4A261"/>
+          <ellipse cx="45" cy="68" rx="20" ry="22" fill="#E76F51" />
+          <ellipse cx="45" cy="70" rx="13" ry="16" fill="#F4A261" />
+          <path d="M 45 62 Q 45 55 45 62" fill="none" />
+          <ellipse cx="45" cy="62" rx="6" ry="7" fill="#8D5B4C" />
+          <path d="M 42 56 Q 45 52 48 56" stroke="#523229" stroke-width="2" fill="none" />
+          <circle cx="34" cy="64" r="4" fill="#E76F51" />
+          <circle cx="56" cy="64" r="4" fill="#E76F51" />
+          <ellipse cx="32" cy="28" rx="7" ry="10" fill="#E76F51" />
+          <ellipse cx="32" cy="28" rx="4" ry="6" fill="#F4A261" />
+          <ellipse cx="58" cy="28" rx="7" ry="10" fill="#E76F51" />
+          <ellipse cx="58" cy="28" rx="4" ry="6" fill="#F4A261" />
+          <ellipse cx="45" cy="40" rx="22" ry="18" fill="#E76F51" />
+          <ellipse cx="38" cy="45" rx="10" ry="11" fill="#F4A261" />
+          <ellipse cx="52" cy="45" rx="10" ry="11" fill="#F4A261" />
+          <circle cx="36" cy="38" r="3" fill="#2B2D42" />
+          <circle cx="54" cy="38" r="3" fill="#2B2D42" />
+          <circle cx="37" cy="37" r="1" fill="#FFFFFF" />
+          <circle cx="55" cy="37" r="1" fill="#FFFFFF" />
+          <ellipse cx="31" cy="43" rx="3.5" ry="2.5" fill="#F28482" opacity="0.8" />
+          <ellipse cx="59" cy="43" rx="3.5" ry="2.5" fill="#F28482" opacity="0.8" />
+          <polygon points="43,42 47,42 45,45" fill="#523229" />
+          <path d="M 42 46 Q 45 49 48 46" stroke="#523229" stroke-width="1.5" fill="none" />
+        </svg>
+      </div>
+    </div>
+
+    <!-- ② 제목 -->
+    <h1 class="title">가을 열매 찾기 타이머</h1>
+
+    <!-- ③ 설명 문구 -->
+    <p class="description">가을 열매를 찾으러 출발!</p>
+
+    <!-- ④ 시간 선택 버튼 (+1분, +3분, +5분) -->
+    <div class="time-buttons">
+      <button class="btn-time" onclick="addTime(1)">+1분</button>
+      <button class="btn-time" onclick="addTime(3)">+3분</button>
+      <button class="btn-time" onclick="addTime(5)">+5분</button>
+    </div>
+
+    <!-- ⑤ 큰 타이머 영역 -->
+    <div class="timer-display-box" id="timerBox">
+      <!-- 왼쪽 칸: 숫자 타이머 -->
+      <div class="timer-left-cell">
+        <span class="timer-text" id="timerDisplay">00:00</span>
+      </div>
+
+      <!-- 오른쪽 칸: 정밀 그래픽 애니메이션 모래시계 -->
+      <div class="timer-right-cell">
+        <svg class="hourglass-svg" viewBox="0 0 50 60">
+          <!-- 모래시계 프레임 (상하 나무 틀 & 유리관) -->
+          <path d="M 8 4 L 42 4 M 8 56 L 42 56" stroke="#e5732f" stroke-width="4" stroke-linecap="round"/>
+          <path d="M 12 4 C 12 21, 23 27, 25 30 C 27 33, 38 39, 38 56 L 12 56 C 12 39, 23 33, 25 30 C 27 27, 38 21, 38 4 Z" fill="#ffffff" stroke="#eb9d4c" stroke-width="2.5" stroke-linejoin="round"/>
+
+          <!-- 위쪽 클리핑 유리관 (상단 모래 수위 변화) -->
+          <clipPath id="topGlassClip">
+            <path d="M 12 4 C 12 21, 23 27, 25 30 C 27 27, 38 21, 38 4 Z"/>
+          </clipPath>
+          <!-- 위쪽 모래 -->
+          <path id="topSandPath" d="M 10 4 L 40 4 L 40 30 L 10 30 Z" fill="#f4a261" clip-path="url(#topGlassClip)"/>
+
+          <!-- 떨어지는 모래 가루 줄기 (애니메이션 동적 연동) -->
+          <line id="sandStream" x1="25" y1="28" x2="25" y2="54" stroke="#e76f51" stroke-width="2" stroke-dasharray="3,3" class="sand-stream-active" style="display: none;"/>
+
+          <!-- 아래쪽 클리핑 유리관 (하단 모래 쌓임) -->
+          <clipPath id="bottomGlassClip">
+            <path d="M 25 30 C 27 33, 38 39, 38 56 L 12 56 C 12 39, 23 33, 25 30 Z"/>
+          </clipPath>
+          <!-- 아래쪽 모래 (곡선 모래 산 표현) -->
+          <path id="bottomSandPath" d="M 10 56 L 40 56 L 40 56 Q 25 56 10 56 Z" fill="#f4a261" clip-path="url(#bottomGlassClip)"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- ⑥ 하단 동작 버튼 -->
+    <div class="action-buttons">
+      <button class="btn-action btn-start" id="startBtn" onclick="toggleTimer()">시작!</button>
+      <button class="btn-action btn-reset" onclick="resetTimer()">다시!</button>
+    </div>
+  </div>
+
+  <!-- 통합 설정 모달 팝업 -->
+  <div class="modal-overlay" id="settingsModal">
+    <div class="settings-modal">
+      <div class="modal-header">
+        <div class="modal-title">⚙️ 설정</div>
+        <button class="close-btn" id="closeSettingsBtn">✕</button>
+      </div>
+
+      <!-- 🐿️ 다람쥐 사진 설정 -->
+      <div class="setting-group">
+        <div class="setting-label">🐿️ 다람쥐 사진 설정</div>
+        <button class="setting-file-btn" id="charFileBtn">📁 이미지 파일 선택</button>
+        <input type="file" id="charFileInput" class="hidden-input" accept="image/*">
+      </div>
+
+      <!-- 🔊 소리 설정 -->
+      <div class="setting-group">
+        <div class="setting-label">🔊 소리 설정</div>
+        <button class="setting-file-btn" id="bgmFileBtn">📁 배경 음악 선택 (없음)</button>
+        <input type="file" id="bgmFileInput" class="hidden-input" accept="audio/*">
+        
+        <div class="bgm-volume-row" id="bgmVolRow" style="display: none;">
+          <span id="bgmStatusText">대기 중</span>
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span>볼륨</span>
+            <input type="range" class="bgm-vol-slider" id="bgmVolume" min="0" max="1" step="0.1" value="0.7">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let totalSeconds = 0;
+    let initialMaxSeconds = 0; // 모래시계 속도 정밀 보정을 위한 기준 전체 시간
+    let timerInterval = null;
+    let isRunning = false;
+
+    const timerDisplay = document.getElementById('timerDisplay');
+    const startBtn = document.getElementById('startBtn');
+    const timerBox = document.getElementById('timerBox');
+
+    // 모래시계 그래픽 요소
+    const topSandPath = document.getElementById('topSandPath');
+    const bottomSandPath = document.getElementById('bottomSandPath');
+    const sandStream = document.getElementById('sandStream');
+
+    // BGM 오디오 객체
+    let bgmAudio = null;
+
+    // Web Audio API 전역 오디오 컨텍스트
+    let audioCtx = null;
+
+    function initAudio() {
+      if (!audioCtx) {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new AudioContext();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    // 기존 시작 효과음 ("딩동")
+    function playStartSound() {
+      initAudio();
+      if (!audioCtx) return;
+
+      const now = audioCtx.currentTime;
+
+      const osc1 = audioCtx.createOscillator();
+      const gain1 = audioCtx.createGain();
+      osc1.type = 'sine';
+      osc1.frequency.setValueAtTime(1046.50, now);
+      gain1.gain.setValueAtTime(0.3, now);
+      gain1.gain.exponentialRampToValueAtTime(0.0001, now + 0.35);
+      osc1.connect(gain1);
+      gain1.connect(audioCtx.destination);
+      osc1.start(now);
+      osc1.stop(now + 0.35);
+
+      const osc2 = audioCtx.createOscillator();
+      const gain2 = audioCtx.createGain();
+      osc2.type = 'sine';
+      osc2.frequency.setValueAtTime(783.99, now + 0.18);
+      gain2.gain.setValueAtTime(0.35, now + 0.18);
+      gain2.gain.exponentialRampToValueAtTime(0.0001, now + 0.7);
+      osc2.connect(gain2);
+      gain2.connect(audioCtx.destination);
+      osc2.start(now + 0.18);
+      osc2.stop(now + 0.7);
+    }
+
+    // 기존 종료 효과음 ("학교 종소리")
+    function playFinishSound() {
+      initAudio();
+      if (!audioCtx) return;
+
+      const now = audioCtx.currentTime;
+      const chimeNotes = [
+        { freq: 659.25, time: 0.0 },
+        { freq: 523.25, time: 0.4 },
+        { freq: 587.33, time: 0.8 },
+        { freq: 392.00, time: 1.2 }
+      ];
+
+      chimeNotes.forEach(note => {
+        const startTime = now + note.time;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(note.freq, startTime);
+
+        gain.gain.setValueAtTime(0.3, startTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, startTime + 1.0);
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        osc.start(startTime);
+        osc.stop(startTime + 1.0);
+      });
+    }
+
+    // ⏳ 모래시계 속도 정밀 교정 업데이트 함수 (실제 남은 초수 비율에만 비례)
+    function updateHourglass() {
+      if (initialMaxSeconds <= 0 || totalSeconds <= 0) {
+        if (totalSeconds <= 0 && initialMaxSeconds > 0) {
+          // 타이머 00:00 종료 시: 위쪽은 완전히 비고, 아래쪽은 완전히 채워짐
+          topSandPath.setAttribute('d', 'M 10 30 L 40 30 L 40 30 L 10 30 Z');
+          bottomSandPath.setAttribute('d', 'M 10 56 L 40 56 L 40 30 Q 25 30 10 30 Z');
+        } else {
+          // 초기 00:00 상태
+          topSandPath.setAttribute('d', 'M 10 4 L 40 4 L 40 30 L 10 30 Z');
+          bottomSandPath.setAttribute('d', 'M 10 56 L 40 56 L 40 56 Q 25 56 10 56 Z');
+        }
+        sandStream.style.display = 'none';
+        return;
+      }
+
+      // 남은 시간 비율 (1.0 -> 0.0)
+      const ratio = Math.max(0, Math.min(1, totalSeconds / initialMaxSeconds));
+
+      // 1. 위쪽 모래: 높이가 전체 시간(1.0)일 때는 4에서 시작하여 0.0일 때 30까지 천천히 수평으로 낮아짐
+      const topY = 4 + (30 - 4) * (1 - ratio);
+      topSandPath.setAttribute('d', `M 10 ${topY} L 40 ${topY} L 40 30 L 10 30 Z`);
+
+      // 2. 아래쪽 모래: 바닥(56)에서부터 시작하여 시간에 맞춰 천천히 차오름
+      const bottomFillHeight = (56 - 30) * (1 - ratio);
+      const bottomY = 56 - bottomFillHeight;
+      const peakY = Math.max(28, bottomY - (ratio > 0 && ratio < 1 ? 4 : 0));
+      bottomSandPath.setAttribute('d', `M 10 56 L 40 56 L 40 ${bottomY} Q 25 ${peakY} 10 ${bottomY} Z`);
+
+      // 3. 가운데 모래 흐름 줄기 (타이머가 작동하고 남은 시간이 있을 때만 표시)
+      if (isRunning && totalSeconds > 0) {
+        sandStream.style.display = 'block';
+      } else {
+        sandStream.style.display = 'none';
+      }
+    }
+
+    // 화면 시간 및 모래시계 동시 업데이트
+    function updateDisplay() {
+      const minutes = Math.floor(totalSeconds / 60);
+      const seconds = totalSeconds % 60;
+      const formattedMin = String(minutes).padStart(2, '0');
+      const formattedSec = String(seconds).padStart(2, '0');
+      timerDisplay.textContent = `${formattedMin}:${formattedSec}`;
+
+      // 모래시계 속도 정밀 업데이트
+      updateHourglass();
+    }
+
+    // 시간 선택 버튼 (+1분, +3분, +5분)
+    function addTime(minutes) {
+      initAudio();
+      totalSeconds += minutes * 60;
+      if (totalSeconds > 5999) totalSeconds = 5999;
+      // 타이머가 동작 중이 아닐 때만 기준 전체 시간(initialMaxSeconds)을 동기화하여 속도 편차 방지
+      if (!isRunning) {
+        initialMaxSeconds = totalSeconds;
+      }
+      updateDisplay();
+    }
+
+    // BGM 재생 헬퍼
+    function playBgm() {
+      if (bgmAudio) {
+        const vol = parseFloat(document.getElementById('bgmVolume').value);
+        bgmAudio.volume = vol;
+        bgmAudio.currentTime = bgmAudio.currentTime || 0;
+        bgmAudio.play().then(() => {
+          document.getElementById('bgmStatusText').textContent = '🎶 재생 중';
+        }).catch(err => console.log('BGM 재생 오류:', err));
+      }
+    }
+
+    // BGM 일시정지 헬퍼
+    function pauseBgm() {
+      if (bgmAudio) {
+        bgmAudio.pause();
+        document.getElementById('bgmStatusText').textContent = '⏸️ 일시정지';
+      }
+    }
+
+    // BGM 완전 정지 헬퍼
+    function stopBgm() {
+      if (bgmAudio) {
+        bgmAudio.pause();
+        bgmAudio.currentTime = 0;
+        document.getElementById('bgmStatusText').textContent = '⏹️ 정지됨';
+      }
+    }
+
+    // 타이머 시작 / 일시정지 토글
+    function toggleTimer() {
+      if (isRunning) {
+        clearInterval(timerInterval);
+        isRunning = false;
+        startBtn.textContent = '시작!';
+        pauseBgm();
+        updateHourglass();
+      } else {
+        if (totalSeconds <= 0) return;
+        
+        // 타이머 첫 시작 시 현재 설정되어 있는 총 시간을 모래시계 전체 기준 시간으로 확정
+        if (initialMaxSeconds <= 0 || initialMaxSeconds < totalSeconds) {
+          initialMaxSeconds = totalSeconds;
+        }
+
+        playStartSound();
+        playBgm();
+
+        isRunning = true;
+        startBtn.textContent = '일시정지';
+        timerBox.classList.remove('timer-finished');
+        updateHourglass();
+
+        timerInterval = setInterval(() => {
+          if (totalSeconds > 0) {
+            totalSeconds--;
+            updateDisplay();
+          } else {
+            // 00:00 도달 시
+            clearInterval(timerInterval);
+            isRunning = false;
+            startBtn.textContent = '시작!';
+            
+            stopBgm(); // BGM 완전 정지
+            playFinishSound(); // 종료 소리 재생
+            timerBox.classList.add('timer-finished');
+            updateHourglass();
+          }
+        }, 1000);
+      }
+    }
+
+    // 타이머 초기화
+    function resetTimer() {
+      clearInterval(timerInterval);
+      isRunning = false;
+      totalSeconds = 0;
+      initialMaxSeconds = 0;
+      updateDisplay();
+      startBtn.textContent = '시작!';
+      timerBox.classList.remove('timer-finished');
+      stopBgm();
+    }
+
+    // 설정 모달 및 이벤트 바인딩
+    document.addEventListener('DOMContentLoaded', function() {
+      const openSettingsBtn = document.getElementById('openSettingsBtn');
+      const closeSettingsBtn = document.getElementById('closeSettingsBtn');
+      const settingsModal = document.getElementById('settingsModal');
+
+      // ⚙️ 설정 모달 열기 / 닫기
+      openSettingsBtn.addEventListener('click', function() {
+        settingsModal.classList.add('active');
+      });
+
+      closeSettingsBtn.addEventListener('click', function() {
+        settingsModal.classList.remove('active');
+      });
+
+      settingsModal.addEventListener('click', function(e) {
+        if (e.target === settingsModal) {
+          settingsModal.classList.remove('active');
+        }
+      });
+
+      // 🐿️ 다람쥐 사진 설정
+      const charFileBtn = document.getElementById('charFileBtn');
+      const charFileInput = document.getElementById('charFileInput');
+      const charImageContainer = document.getElementById('charImageContainer');
+
+      charFileBtn.addEventListener('click', function() {
+        charFileInput.click();
+      });
+
+      charFileInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(event) {
+          charImageContainer.innerHTML = `<img src="${event.target.result}" class="custom-char-img" alt="커스텀 캐릭터">`;
+          charFileBtn.textContent = `🖼️ ${file.name}`;
+        };
+        reader.readAsDataURL(file);
+      });
+
+      // 🔊 소리 설정 (배경 음악)
+      const bgmFileBtn = document.getElementById('bgmFileBtn');
+      const bgmFileInput = document.getElementById('bgmFileInput');
+      const bgmVolRow = document.getElementById('bgmVolRow');
+      const bgmVolume = document.getElementById('bgmVolume');
+
+      bgmFileBtn.addEventListener('click', function() {
+        bgmFileInput.click();
+      });
+
+      bgmFileInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const fileUrl = URL.createObjectURL(file);
+        
+        if (bgmAudio) {
+          bgmAudio.pause();
+        }
+
+        bgmAudio = new Audio(fileUrl);
+        bgmAudio.loop = true;
+
+        bgmFileBtn.textContent = `🎵 ${file.name}`;
+        bgmVolRow.style.display = 'flex';
+        document.getElementById('bgmStatusText').textContent = '준비 완료';
+      });
+
+      bgmVolume.addEventListener('input', function() {
+        if (bgmAudio) {
+          bgmAudio.volume = parseFloat(this.value);
+        }
+      });
+    });
+  </script>
+</body>
+</html>
